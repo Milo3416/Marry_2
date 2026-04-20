@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de Recuerdos y sorpresas</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg1: #fff6fb;
+      --bg2: #f4ecff;
+      --panel: rgba(255, 255, 255, 0.74);
+      --panel-strong: rgba(255, 255, 255, 0.9);
+      --text: #2b2233;
+      --muted: #6e6279;
+      --primary: #df6ca8;
+      --secondary: #8e72ff;
+      --success: #38a993;
+      --warning: #ffd978;
+      --shadow: 0 24px 50px rgba(92, 55, 122, 0.18);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --grid-gap: 16px;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 190, 220, 0.55), transparent 24%),
+        radial-gradient(circle at 90% 20%, rgba(181, 167, 255, 0.4), transparent 22%),
+        radial-gradient(circle at 85% 80%, rgba(255, 224, 173, 0.35), transparent 16%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      width: 240px;
+      height: 240px;
+      border-radius: 999px;
+      filter: blur(60px);
+      opacity: 0.25;
+      z-index: 0;
+      pointer-events: none;
+      animation: drift 10s ease-in-out infinite;
+    }
+
+    body::before {
+      left: -40px;
+      top: 40px;
+      background: #ff99c8;
+    }
+
+    body::after {
+      right: -20px;
+      bottom: 20px;
+      background: #9b8cff;
+      animation-delay: -5s;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(20px, -18px) scale(1.08); }
+    }
+
+    .floating-hearts {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .heart {
+      position: absolute;
+      bottom: -40px;
+      font-size: 20px;
+      opacity: 0.7;
+      animation: rise linear infinite;
+    }
+
+    @keyframes rise {
+      0% {
+        transform: translateY(0) scale(0.8) rotate(0deg);
+        opacity: 0;
+      }
+      15% { opacity: 0.7; }
+      100% {
+        transform: translateY(-120vh) scale(1.25) rotate(18deg);
+        opacity: 0;
+      }
+    }
+
+    .game-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1320px, 96vw);
+      height: min(860px, 95vh);
+      margin: 2.5vh auto;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+    }
+
+    .panel,
+    .board-wrap,
+    .music-mini {
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.58);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: auto;
+    }
+
+    .eyebrow-title {
+      margin: 0 0 6px;
+      color: var(--secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.76rem;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 2rem;
+      line-height: 1.02;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.98rem;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .glass-card {
+      background: var(--panel-strong);
+      border: 1px solid rgba(140, 114, 255, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 15px;
+    }
+
+    .box-title {
+      margin: 0 0 8px;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--secondary);
+      font-weight: 800;
+    }
+
+    .message-text,
+    .hint-text {
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    .hint-text { color: var(--muted); }
+
+    .hero-media {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .hero-photo {
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.14);
+    }
+
+    .chibi-showcase {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 220px;
+      background:
+        radial-gradient(circle at top center, rgba(255,255,255,0.95), rgba(255,240,248,0.8) 45%, rgba(232,224,255,0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .mini-stars,
+    .mini-hearts {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .mini-stars span,
+    .mini-hearts span {
+      position: absolute;
+      animation: pulseFloat 2.8s ease-in-out infinite;
+      opacity: 0.9;
+    }
+
+    .mini-hearts span { font-size: 18px; }
+    .mini-stars span { font-size: 16px; }
+
+    .mini-stars span:nth-child(1) { left: 16px; top: 18px; animation-delay: -0.2s; }
+    .mini-stars span:nth-child(2) { right: 18px; top: 24px; animation-delay: -1s; }
+    .mini-stars span:nth-child(3) { right: 24px; bottom: 28px; animation-delay: -1.8s; }
+    .mini-hearts span:nth-child(1) { left: 22px; bottom: 22px; animation-delay: -0.6s; }
+    .mini-hearts span:nth-child(2) { right: 24px; top: 76px; animation-delay: -1.4s; }
+
+    .approved-avatar {
+      position: relative;
+      z-index: 2;
+      width: min(100%, 280px);
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 18px;
+      filter: drop-shadow(0 12px 20px rgba(0,0,0,0.14));
+      animation: pulseFloat 2.8s ease-in-out infinite;
+    }
+
+    @keyframes pulseFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-7px) scale(1.04); }
+    }
+
+    .progress {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .dot {
+      height: 12px;
+      border-radius: 999px;
+      background: #ece3f2;
+      transition: 0.3s ease;
+    }
+
+    .dot.done {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transform: scale(1.04);
+      box-shadow: 0 6px 14px rgba(142,114,255,0.2);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 16px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover { transform: translateY(-2px); }
+    button:active { transform: translateY(0); }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      box-shadow: 0 14px 28px rgba(142,114,255,0.24);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .music-mini {
+      margin-top: auto;
+      border-radius: 20px;
+      padding: 14px;
+    }
+
+    .music-mini h4,
+    .music-mini p { margin: 0; }
+
+    .music-mini h4 {
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .music-mini p {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .music-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-size: 0.82rem;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .board-wrap {
+      position: relative;
+      border-radius: var(--radius-xl);
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .board-title {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .status-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(0,0,0,0.06);
+      color: var(--muted);
+    }
+
+    .energy-bar {
+      width: 150px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.7);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .energy-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ffb777, #ffd977, #7fe0c0);
+      transition: width 0.35s ease;
+    }
+
+    .board-stage {
+      position: relative;
+      min-height: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.38), rgba(255,255,255,0.22)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 80px),
+        repeating-linear-gradient(180deg, rgba(255,255,255,0.14) 0 1px, transparent 1px 80px),
+        linear-gradient(160deg, rgba(255,214,231,0.65), rgba(234,228,255,0.84));
+      border: 1px solid rgba(255,255,255,0.35);
+    }
+
+    .connector-layer,
+    .room-layer,
+    .avatar-layer,
+    .fx-layer,
+    .final-overlay {
+      position: absolute;
+      inset: 0;
+    }
+
+    .room-layer,
+    .avatar-layer,
+    .fx-layer,
+    .final-overlay {
+      pointer-events: none;
+    }
+
+    .board {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: var(--grid-gap);
+    }
+
+    .room {
+      position: relative;
+      border-radius: 28px;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62));
+      border: 2px solid transparent;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.58);
+      transition: 0.25s ease;
+      overflow: hidden;
+    }
+
+    .room::before {
+      content: "";
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      width: 124px;
+      height: 124px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(223,108,168,0.18), transparent 62%);
+    }
+
+    .room.active {
+      border-color: rgba(223,108,168,0.65);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7), 0 16px 26px rgba(223,108,168,0.13);
+    }
+
+    .room.done {
+      border-color: rgba(56,169,147,0.42);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7), 0 14px 22px rgba(56,169,147,0.12);
+    }
+
+    .room.locked .door {
+      filter: saturate(0.88);
+    }
+
+    .room h3 {
+      margin: 0 0 6px;
+      font-size: 1.06rem;
+    }
+
+    .room p {
+      margin: 0;
+      max-width: 78%;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.93rem;
+    }
+
+    .room-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      min-width: 34px;
+      height: 34px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.86);
+      font-weight: 800;
+      color: var(--secondary);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+
+    .door {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 62px;
+      height: 82px;
+      border-radius: 16px 16px 8px 8px;
+      background: linear-gradient(180deg, #c78ca9, #9f607f);
+      box-shadow: inset -6px 0 0 rgba(0,0,0,0.08);
+      transform-origin: left center;
+      transition: transform 0.55s ease, filter 0.25s ease;
+    }
+
+    .door::before {
+      content: "";
+      position: absolute;
+      inset: 9px 12px 14px 12px;
+      border-radius: 10px 10px 5px 5px;
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+
+    .door::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      top: 36px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffe79a;
+      box-shadow: 0 0 10px rgba(255,231,154,0.8);
+    }
+
+    .room.opening .door,
+    .room.done .door {
+      transform: perspective(300px) rotateY(-68deg);
+      filter: brightness(1.04);
+    }
+
+    .path-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .path-line {
+      fill: none;
+      stroke: rgba(142, 114, 255, 0.45);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 12 12;
+      opacity: 0.9;
+      filter: drop-shadow(0 4px 6px rgba(142,114,255,0.18));
+    }
+
+    .spark {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff, #ffd978 60%, transparent 70%);
+      animation: sparkle 1.1s ease-out forwards;
+    }
+
+    @keyframes sparkle {
+      0% { transform: scale(0.3); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: scale(1.7) translateY(-18px); opacity: 0; }
+    }
+
+    .final-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.4s ease;
+      background: radial-gradient(circle at top center, rgba(255,255,255,0.28), transparent 30%), linear-gradient(135deg, rgba(223,108,168,0.9), rgba(142,114,255,0.92));
+      text-align: center;
+    }
+
+    .final-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .final-card {
+      max-width: 680px;
+      padding: 28px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 20px 44px rgba(0,0,0,0.18);
+      color: white;
+    }
+
+    .final-card h2 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+    }
+
+    .final-card p {
+      margin: 0;
+      font-size: 1.08rem;
+      line-height: 1.6;
+    }
+
+    .sparkles {
+      font-size: 2.1rem;
+      margin-bottom: 12px;
+      animation: pulseFloat 2.6s ease-in-out infinite;
+    }
+
+    .hidden-audio {
+      display: none;
+    }
+
+    .mobile-controls {
+      display: none;
+    }
+
+    .avatar-unit {
+      position: absolute;
+      left: 40px;
+      top: 72%;
+      width: 110px;
+      height: 110px;
+      transform: translate(-50%, -50%);
+      transition: left 0.7s ease, top 0.7s ease;
+      z-index: 8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(84, 60, 108, 0.18);
+      filter: blur(5px);
+      z-index: 0;
+      animation: shadowPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes shadowPulse {
+      0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.22; }
+      50% { transform: translateX(-50%) scaleX(0.92); opacity: 0.16; }
+    }
+
+    .game-avatar-sprite {
+      position: relative;
+      z-index: 2;
+      width: 92px;
+      height: 92px;
+      object-fit: cover;
+      object-position: center center;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.95);
+      box-shadow: 0 14px 24px rgba(0,0,0,0.18);
+      background: rgba(255,255,255,0.5);
+      animation: spriteIdle 1.2s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .game-avatar-sprite.walking {
+      animation: spriteWalk 0.55s ease-in-out infinite;
+    }
+
+    @keyframes spriteIdle {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-4px) scale(1.01); }
+    }
+
+    @keyframes spriteWalk {
+      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+      25% { transform: translateY(-6px) rotate(-2deg) scale(1.03); }
+      50% { transform: translateY(0) rotate(0deg) scale(1); }
+      75% { transform: translateY(-6px) rotate(2deg) scale(1.03); }
+    }
+
+    .interaction-hint {
+      position: absolute;
+      bottom: 18px;
+      left: 18px;
+      display: none;
+      gap: 8px;
+      align-items: center;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.92);
+      color: var(--muted);
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+      z-index: 10;
+    }
+
+    .interaction-hint.show {
+      display: inline-flex;
+      animation: pulseFloat 1.8s ease-in-out infinite;
+    }
+
+    .kbd {
+      min-width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.08);
+      color: var(--text);
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.04);
+    }
+
+    @media (max-width: 1060px) {
+      html, body { overflow: auto; }
+      .game-shell {
+        height: auto;
+        grid-template-columns: 1fr;
+        margin: 14px auto 22px;
+      }
+      .panel { max-height: none; }
+      .board-wrap { min-height: 760px; }
+    }
+
+    @media (max-width: 760px) {
+      .hero-media {
+        grid-template-columns: 1fr;
+      }
+      .board {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(6, minmax(155px, 1fr));
+      }
+      .room p { max-width: 68%; }
+      .controls { grid-template-columns: 1fr; }
+      .mobile-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .mobile-controls button {
+        background: rgba(255,255,255,0.92);
+      }
+      .interaction-hint { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-hearts" id="floatingHearts"></div>
+
+  <div class="game-shell">
+    <aside class="panel">
+      <div>
+        <p class="eyebrow-title">Mini aventura romántica</p>
+        <h1 class="title">Juego de Recuerdos y Sorpresas</h1>
+        <p class="subtitle">Bienvenida al Mundo de recuerdos y amor. </p>
+      </div>
+
+      <div class="glass-card stack">
+        <div class="hero-media">
+          <img class="hero-photo" src="C:\Users\cserrato\Downloads\IMG-20260329-WA0014.jpg" alt="Foto de referencia" />
+
+          <div class="chibi-showcase">
+            <div class="mini-stars"><span>✨</span><span>⭐</span><span>✨</span></div>
+            <div class="mini-hearts"><span>💖</span><span>💗</span></div>
+            <img class="approved-avatar" src="C:\Users\cserrato\Downloads\ChatGPT Image 20 abr 2026, 09_22_02 a.m..png" alt="Avatar chibi aprobado" />
+          </div>
+        </div>
+        <p class="subtitle">Nuestra Protagonista es la mujer más guapa del planeta</p>
+      </div>
+
+      <div class="glass-card">
+        <h3 class="box-title">Controles</h3>
+        <p class="hint-text">Usa <strong>W A S D</strong> o las <strong>flechas</strong> para moverte. Cuando estés cerca del siguiente cuarto, presiona <strong>Espacio</strong> o <strong>Entrar</strong> para abrir la puerta y revelar el mensaje.</p>
+      </div>
+
+      <div class="glass-card">
+        <h3 class="box-title">Mensaje actual</h3>
+        <p class="message-text" id="messageText">Muévete hasta el primer cuarto para comenzar la aventura.</p>
+      </div>
+
+      <div class="glass-card">
+        <h3 class="box-title">Pistas</h3>
+        <p class="hint-text" id="hintText">Cada puerta debe abrirse en orden. Sigue la ruta punteada y deja que los recuerdos te guíen.</p>
+      </div>
+
+      <div class="glass-card">
+        <h3 class="box-title">Progreso emocional</h3>
+        <div class="progress" id="progressDots"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-primary" id="openBtn">Abrir siguiente puerta</button>
+        <button class="btn-secondary" id="resetBtn">Reiniciar aventura</button>
+      </div>
+
+      <div class="mobile-controls">
+        <button id="upBtn">↑</button>
+        <button id="actionBtn">Abrir</button>
+        <button id="rightBtn">→</button>
+        <button id="leftBtn">←</button>
+        <button id="downBtn">↓</button>
+        <button id="musicBtnMobile">Música</button>
+      </div>
+
+      <div class="music-mini">
+        <h4>Música y ambiente</h4>
+        <p>Activé una melodía ambiental generada con WebAudio para que no dependas de archivos externos. También hay destellos y corazones flotando durante el recorrido.</p>
+        <div class="music-controls">
+          <button class="pill" id="musicToggleBtn">Activar música</button>
+          <span class="pill" id="musicStatus">Música apagada</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="board-wrap">
+      <div class="board-header">
+        <h2 class="board-title">Mapa de cuartos</h2>
+        <div class="status-group">
+          <div class="tag" id="statusTag">Explora el mapa</div>
+          <div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
+        </div>
+      </div>
+
+      <div class="board-stage" id="boardStage">
+        <div class="connector-layer" id="connectorLayer"></div>
+        <div class="room-layer">
+          <div class="board" id="board"></div>
+        </div>
+        <div class="avatar-layer">
+          <div class="avatar-unit" id="avatarUnit">
+            <div class="avatar-shadow"></div>
+            <img class="game-avatar-sprite" id="gameChibi" src="C:\Users\cserrato\Downloads\ChatGPT Image 20 abr 2026, 09_22_02 a.m..png" alt="Avatar chibi del juego" />
+          </div>
+        </div>
+        <div class="fx-layer" id="fxLayer"></div>
+        <div class="interaction-hint" id="interactionHint"><span class="kbd">␣</span> Abre la puerta</div>
+        <div class="final-overlay" id="finalOverlay">
+          <div class="final-card">
+            <div class="sparkles">✨💖✨</div>
+            <h2>¡Sorpresa desbloqueada!</h2>
+            <p>Tendrás una sorpresa el día de hoy.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <audio class="hidden-audio" id="victoryTone"></audio>
+
+  <script>
+    const rooms = [
+      {
+        title: 'Cuarto 1',
+        hint: 'La primera puerta guarda la emoción del comienzo.',
+        message: 'Aún recuerdo la sensación de nuestro primer beso'
+      },
+      {
+        title: 'Cuarto 2',
+        hint: 'Aquí vibra una noche llena de música y emoción.',
+        message: 'La noche de nuestro primer concierto fue mágica'
+      },
+      {
+        title: 'Cuarto 3',
+        hint: 'Un lugar donde el viaje se sintió hogar.',
+        message: 'Nuestro primer viaje me hizo sentir tan lejos y cerca de casa'
+      },
+      {
+        title: 'Cuarto 4',
+        hint: 'Luces, detalles y un intercambio inolvidable.',
+        message: 'Amé nuestro primer intercambio de regalos de Navidad'
+      },
+      {
+        title: 'Cuarto 5',
+        hint: 'Una puerta que huele a cena, magia y complicidad.',
+        message: 'Nuestra cena en Blanco Castelar fue más que mágica'
+      },
+      {
+        title: 'Cuarto 6',
+        hint: 'La última puerta no cierra la historia: la abre.',
+        message: 'Tendrás una sorpresa el día de hoy'
+      }
+    ];
+
+    const board = document.getElementById('board');
+    const boardStage = document.getElementById('boardStage');
+    const messageText = document.getElementById('messageText');
+    const hintText = document.getElementById('hintText');
+    const openBtn = document.getElementById('openBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusTag = document.getElementById('statusTag');
+    const progressDots = document.getElementById('progressDots');
+    const avatarUnit = document.getElementById('avatarUnit');
+    const gameChibi = document.getElementById('gameChibi');
+    const fxLayer = document.getElementById('fxLayer');
+    const finalOverlay = document.getElementById('finalOverlay');
+    const interactionHint = document.getElementById('interactionHint');
+    const connectorLayer = document.getElementById('connectorLayer');
+    const floatingHearts = document.getElementById('floatingHearts');
+    const energyFill = document.getElementById('energyFill');
+    const musicToggleBtn = document.getElementById('musicToggleBtn');
+    const musicStatus = document.getElementById('musicStatus');
+    const musicBtnMobile = document.getElementById('musicBtnMobile');
+
+    const mobileButtons = {
+      upBtn: [0, -1],
+      downBtn: [0, 1],
+      leftBtn: [-1, 0],
+      rightBtn: [1, 0]
+    };
+
+    let roomElements = [];
+    let dots = [];
+    let currentUnlocked = -1;
+    let nextTargetIndex = 0;
+    let roomCenters = [];
+    let musicCtx = null;
+    let ambientNodes = [];
+    let musicOn = false;
+
+    const avatar = {
+      x: 0.1,
+      y: 0.78,
+      speed: 0.016,
+      moving: false
+    };
+
+    const keys = new Set();
+
+    function createFloatingHearts() {
+      floatingHearts.innerHTML = '';
+      for (let i = 0; i < 14; i++) {
+        const el = document.createElement('span');
+        el.className = 'heart';
+        el.textContent = ['💗', '💖', '✨', '💞'][i % 4];
+        el.style.left = `${Math.random() * 100}%`;
+        el.style.animationDuration = `${8 + Math.random() * 10}s`;
+        el.style.animationDelay = `${-Math.random() * 12}s`;
+        el.style.fontSize = `${16 + Math.random() * 14}px`;
+        floatingHearts.appendChild(el);
+      }
+    }
+
+    function renderRooms() {
+      board.innerHTML = '';
+      progressDots.innerHTML = '';
+      roomElements = [];
+      dots = [];
+
+      rooms.forEach((room, index) => {
+        const roomEl = document.createElement('article');
+        roomEl.className = 'room locked';
+        roomEl.dataset.index = index;
+        roomEl.innerHTML = `
+          <div class="room-badge">${index + 1}</div>
+          <h3>${room.title}</h3>
+          <p>${room.hint}</p>
+          <div class="door"></div>
+        `;
+        board.appendChild(roomEl);
+        roomElements.push(roomEl);
+
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        progressDots.appendChild(dot);
+        dots.push(dot);
+      });
+
+      requestAnimationFrame(updateRoomCenters);
+    }
+
+    function updateRoomCenters() {
+      const stageRect = boardStage.getBoundingClientRect();
+      roomCenters = roomElements.map((roomEl) => {
+        const rect = roomEl.getBoundingClientRect();
+        return {
+          x: (rect.left - stageRect.left + rect.width / 2) / stageRect.width,
+          y: (rect.top - stageRect.top + rect.height / 2) / stageRect.height
+        };
+      });
+      drawConnectors();
+      placeAvatar();
+    }
+
+    function drawConnectors() {
+      if (!roomCenters.length) return;
+      const width = boardStage.clientWidth;
+      const height = boardStage.clientHeight;
+      const pathPoints = [{ x: avatar.x * width, y: avatar.y * height }, ...roomCenters.map((p) => ({ x: p.x * width, y: p.y * height }))];
+      let d = '';
+      pathPoints.forEach((point, index) => {
+        if (index === 0) d += `M ${point.x} ${point.y}`;
+        else d += ` L ${point.x} ${point.y}`;
+      });
+      connectorLayer.innerHTML = `
+        <svg class="path-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+          <path class="path-line" d="${d}" />
+        </svg>
+      `;
+    }
+
+    function placeAvatar() {
+      const width = boardStage.clientWidth;
+      const height = boardStage.clientHeight;
+      avatarUnit.style.left = `${avatar.x * width}px`;
+      avatarUnit.style.top = `${avatar.y * height}px`;
+    }
+
+    function clampAvatar() {
+      avatar.x = Math.min(0.94, Math.max(0.06, avatar.x));
+      avatar.y = Math.min(0.88, Math.max(0.12, avatar.y));
+    }
+
+    function updateMovement() {
+      let dx = 0;
+      let dy = 0;
+      if (keys.has('arrowleft') || keys.has('a')) dx -= 1;
+      if (keys.has('arrowright') || keys.has('d')) dx += 1;
+      if (keys.has('arrowup') || keys.has('w')) dy -= 1;
+      if (keys.has('arrowdown') || keys.has('s')) dy += 1;
+
+      const moving = dx !== 0 || dy !== 0;
+      avatar.moving = moving;
+      gameChibi.classList.toggle('walking', moving);
+
+      if (moving) {
+        const len = Math.hypot(dx, dy) || 1;
+        avatar.x += (dx / len) * avatar.speed;
+        avatar.y += (dy / len) * avatar.speed;
+        clampAvatar();
+        placeAvatar();
+      }
+
+      updateProximityHint();
+      requestAnimationFrame(updateMovement);
+    }
+
+    function getDistanceToTarget() {
+      if (nextTargetIndex >= rooms.length || !roomCenters[nextTargetIndex]) return Infinity;
+      const target = roomCenters[nextTargetIndex];
+      return Math.hypot(avatar.x - target.x, avatar.y - target.y);
+    }
+
+    function updateProximityHint() {
+      const near = getDistanceToTarget() < 0.11;
+      interactionHint.classList.toggle('show', near && nextTargetIndex < rooms.length);
+      statusTag.textContent = nextTargetIndex >= rooms.length ? 'Sorpresa lista' : near ? `Lista para abrir ${rooms[nextTargetIndex].title}` : `Busca ${rooms[nextTargetIndex].title}`;
+      energyFill.style.width = `${Math.max(12, 100 - ((nextTargetIndex / rooms.length) * 100))}%`;
+    }
+
+    function burstSparkles(x, y, count = 12) {
+      const stageRect = boardStage.getBoundingClientRect();
+      for (let i = 0; i < count; i++) {
+        const spark = document.createElement('span');
+        spark.className = 'spark';
+        spark.style.left = `${x * stageRect.width + (Math.random() * 34 - 17)}px`;
+        spark.style.top = `${y * stageRect.height + (Math.random() * 26 - 13)}px`;
+        spark.style.animationDelay = `${Math.random() * 0.2}s`;
+        fxLayer.appendChild(spark);
+        setTimeout(() => spark.remove(), 1200);
+      }
+    }
+
+    function playVictoryNotes() {
+      if (!musicCtx) return;
+      const now = musicCtx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = musicCtx.createOscillator();
+        const gain = musicCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.09, now + i * 0.12 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.26);
+        osc.connect(gain).connect(musicCtx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.3);
+      });
+    }
+
+    function ensureMusic() {
+      if (!musicCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return false;
+        musicCtx = new AudioCtx();
+      }
+      if (musicCtx.state === 'suspended') musicCtx.resume();
+      return true;
+    }
+
+    function startAmbientMusic() {
+      if (musicOn) return;
+      if (!ensureMusic()) return;
+      const master = musicCtx.createGain();
+      master.gain.value = 0.045;
+      master.connect(musicCtx.destination);
+
+      const freqs = [261.63, 329.63, 392.0];
+      ambientNodes = freqs.map((freq, index) => {
+        const osc = musicCtx.createOscillator();
+        const gain = musicCtx.createGain();
+        osc.type = index === 1 ? 'triangle' : 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = index === 1 ? 0.28 : 0.18;
+        osc.connect(gain).connect(master);
+        osc.start();
+        return { osc, gain, master };
+      });
+
+      musicOn = true;
+      musicToggleBtn.textContent = 'Pausar música';
+      musicStatus.textContent = 'Música activa';
+    }
+
+    function stopAmbientMusic() {
+      ambientNodes.forEach(({ osc, master }) => {
+        try { osc.stop(); } catch (e) {}
+        try { master.disconnect(); } catch (e) {}
+      });
+      ambientNodes = [];
+      musicOn = false;
+      musicToggleBtn.textContent = 'Activar música';
+      musicStatus.textContent = 'Música apagada';
+    }
+
+    function toggleMusic() {
+      if (musicOn) stopAmbientMusic();
+      else startAmbientMusic();
+    }
+
+    function updateRoomStates() {
+      roomElements.forEach((roomEl, index) => {
+        roomEl.classList.toggle('active', index === nextTargetIndex);
+        roomEl.classList.toggle('done', index <= currentUnlocked);
+        roomEl.classList.toggle('locked', index > currentUnlocked);
+      });
+      dots.forEach((dot, index) => dot.classList.toggle('done', index <= currentUnlocked));
+    }
+
+    function openNextDoor() {
+      if (nextTargetIndex >= rooms.length) return;
+      if (getDistanceToTarget() >= 0.11) {
+        hintText.textContent = 'Acércate más a la puerta resaltada para poder abrirla.';
+        burstSparkles(avatar.x, avatar.y, 6);
+        return;
+      }
+
+      const roomEl = roomElements[nextTargetIndex];
+      const room = rooms[nextTargetIndex];
+      roomEl.classList.add('opening');
+      roomEl.classList.remove('locked');
+
+      currentUnlocked = nextTargetIndex;
+      messageText.textContent = room.message;
+      hintText.textContent = room.hint;
+      burstSparkles(roomCenters[nextTargetIndex].x, roomCenters[nextTargetIndex].y, 14);
+
+      setTimeout(() => roomEl.classList.remove('opening'), 900);
+
+      nextTargetIndex += 1;
+      updateRoomStates();
+      updateProximityHint();
+
+      if (ensureMusic()) playVictoryNotes();
+
+      if (currentUnlocked === rooms.length - 1) {
+        finalOverlay.classList.add('show');
+        statusTag.textContent = 'Sorpresa desbloqueada';
+        hintText.textContent = 'Has llegado al final del recorrido. La sorpresa ya está aquí.';
+        openBtn.disabled = true;
+        openBtn.style.opacity = '0.65';
+        openBtn.style.cursor = 'not-allowed';
+        burstSparkles(0.5, 0.5, 28);
+      }
+    }
+
+    function resetGame() {
+      currentUnlocked = -1;
+      nextTargetIndex = 0;
+      avatar.x = 0.1;
+      avatar.y = 0.78;
+      messageText.textContent = 'Muévete hasta el primer cuarto para comenzar la aventura.';
+      hintText.textContent = 'Cada puerta debe abrirse en orden. Sigue la ruta punteada y deja que los recuerdos te guíen.';
+      statusTag.textContent = 'Explora el mapa';
+      finalOverlay.classList.remove('show');
+      openBtn.disabled = false;
+      openBtn.style.opacity = '1';
+      openBtn.style.cursor = 'pointer';
+      updateRoomStates();
+      updateRoomCenters();
+      updateProximityHint();
+    }
+
+    function setupButtons() {
+      openBtn.addEventListener('click', openNextDoor);
+      resetBtn.addEventListener('click', resetGame);
+      musicToggleBtn.addEventListener('click', toggleMusic);
+      if (musicBtnMobile) musicBtnMobile.addEventListener('click', toggleMusic);
+
+      Object.entries(mobileButtons).forEach(([id, direction]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const keyMap = {
+          '0,-1': 'arrowup',
+          '0,1': 'arrowdown',
+          '-1,0': 'arrowleft',
+          '1,0': 'arrowright'
+        };
+        const key = keyMap[direction.join(',')];
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.add(key); });
+        btn.addEventListener('touchend', (e) => { e.preventDefault(); keys.delete(key); });
+        btn.addEventListener('mousedown', () => keys.add(key));
+        btn.addEventListener('mouseup', () => keys.delete(key));
+        btn.addEventListener('mouseleave', () => keys.delete(key));
+      });
+
+      const actionBtn = document.getElementById('actionBtn');
+      if (actionBtn) actionBtn.addEventListener('click', openNextDoor);
+    }
+
+    window.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " ", "enter"].includes(key)) {
+        event.preventDefault();
+      }
+      if (key === ' ' || key === 'enter') {
+        openNextDoor();
+        return;
+      }
+      keys.add(key);
+      if (!musicOn && ['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(key)) {
+        startAmbientMusic();
+      }
+    });
+
+    window.addEventListener('keyup', (event) => {
+      keys.delete(event.key.toLowerCase());
+    });
+
+    window.addEventListener('resize', () => {
+      updateRoomCenters();
+    });
+
+    createFloatingHearts();
+    renderRooms();
+    setupButtons();
+    updateRoomStates();
+    updateProximityHint();
+    requestAnimationFrame(updateMovement);
+    setTimeout(updateRoomCenters, 120);
+  </script>
+</body>
+</html>
